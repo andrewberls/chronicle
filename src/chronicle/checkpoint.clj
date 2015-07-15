@@ -13,7 +13,7 @@
 
 (defn checkpoint-loop
   "Start a loop writing the contents of `log` atom to `logfile`
-   every <interval>
+   every `interval`
 
    Loop is blocking, expected to be called from new thread context"
   [log logfile interval]
