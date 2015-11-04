@@ -1,8 +1,10 @@
 (ns chronicle.core
   (:require [clojure.java.io :as io]
-            (chronicle
-              [checkpoint :as cp]
-              [util :as util])))
+            [clj-time.core :as tcore]
+            (framed.std
+              [core :as std :refer [future-loop]]
+              [serialization :as serialization])
+            [chronicle.checkpoint :as cp]))
 
 (defprotocol ILog
   (append [this v]))
@@ -14,7 +16,7 @@
    as an initial state if non-empty"
   [logfile]
   (let [initial-log (if (> (.length (io/file logfile)) 0)
-                       (util/read-nippy logfile)
+                       (serialization/read-nippy logfile)
                        [])]
     (atom (vec initial-log))))
 
@@ -51,8 +53,11 @@
    Ex interval: (clj-time.core/seconds 30)"
   [bufsize opts flush-fn]
   (let [{:keys [logfile interval]} opts
+        interval-ms (tcore/in-millis interval)
         log (log-atom logfile)]
-    (future (cp/checkpoint-loop log logfile interval))
+    (future-loop
+      (Thread/sleep interval-ms)
+      (cp/checkpoint logfile log))
     (reify ILog
      (append [this v]
        (swap! log conj v)
